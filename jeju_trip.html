@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>제주도 수학여행 🍊</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;700;900&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+  :root {
+    --jeju-green: #2d6a4f;
+    --jeju-teal: #40916c;
+    --jeju-light: #95d5b2;
+    --jeju-pale: #d8f3dc;
+    --jeju-orange: #e85d04;
+    --jeju-sky: #0077b6;
+    --cream: #fefae0;
+    --dark: #1b1b1b;
+    --card-bg: rgba(255,255,255,0.96);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Noto Sans KR', sans-serif;
+    background: var(--dark);
+    color: var(--dark);
+    overflow-x: hidden;
+  }
+
+  /* HEADER */
+  header {
+    position: relative;
+    background: linear-gradient(135deg, #081c15 0%, #1b4332 40%, #2d6a4f 100%);
+    padding: 40px 32px 32px;
+    overflow: hidden;
+    border-bottom: 3px solid var(--jeju-orange);
+  }
+  header::before {
+    content: '';
+    position: absolute;
+    top: -60px; right: -60px;
+    width: 280px; height: 280px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(232,93,4,0.18) 0%, transparent 70%);
+  }
+  header::after {
+    content: '🍊';
+    position: absolute;
+    top: 18px; right: 32px;
+    font-size: 52px;
+    opacity: 0.85;
+    animation: float 3.5s ease-in-out infinite;
+  }
+  @keyframes float {
+    0%,100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+  }
+  .header-tag {
+    display: inline-block;
+    background: var(--jeju-orange);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 4px 12px;
+    border-radius: 20px;
+    margin-bottom: 14px;
+  }
+  header h1 {
+    font-family: 'Noto Serif KR', serif;
+    font-size: clamp(26px, 5vw, 42px);
+    font-weight: 900;
+    color: #fff;
+    line-height: 1.2;
+    letter-spacing: -1px;
+  }
+  header h1 span { color: var(--jeju-light); }
+  .header-sub {
+    margin-top: 10px;
+    color: rgba(255,255,255,0.6);
+    font-size: 13px;
+    font-weight: 300;
+    letter-spacing: 0.5px;
+  }
+
+  /* STATS ROW */
+  .stats-row {
+    display: flex;
+    gap: 0;
+    background: #111;
+    border-bottom: 1px solid #222;
+  }
+  .stat {
+    flex: 1;
+    padding: 14px 10px;
+    text-align: center;
+    border-right: 1px solid #222;
+  }
+  .stat:last-child { border-right: none; }
+  .stat-num {
+    font-family: 'Noto Serif KR', serif;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--jeju-light);
+  }
+  .stat-label {
+    font-size: 10px;
+    color: rgba(255,255,255,0.4);
+    margin-top: 2px;
+    letter-spacing: 0.5px;
+  }
+
+  /* MAIN LAYOUT */
+  .main {
+    display: grid;
+    grid-template-columns: 340px 1fr;
+    height: calc(100vh - 170px);
+    min-height: 500px;
+  }
+
+  /* SIDEBAR */
+  .sidebar {
+    background: #f8f5f0;
+    overflow-y: auto;
+    border-right: 3px solid var(--jeju-green);
+  }
+  .sidebar::-webkit-scrollbar { width: 4px; }
+  .sidebar::-webkit-scrollbar-track { background: #f0ebe4; }
+  .sidebar::-webkit-scrollbar-thumb { background: var(--jeju-light); border-radius: 2px; }
+
+  .day-section { padding: 20px 20px 0; }
+  .day-section:last-child { padding-bottom: 24px; }
+
+  .day-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 14px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid var(--jeju-green);
+  }
+  .day-badge {
+    background: var(--jeju-green);
+    color: #fff;
+    font-family: 'Noto Serif KR', serif;
+    font-weight: 700;
+    font-size: 12px;
+    padding: 5px 12px;
+    border-radius: 20px;
+    white-space: nowrap;
+  }
+  .day-title {
+    font-family: 'Noto Serif KR', serif;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--jeju-green);
+  }
+
+  .stop-card {
+    display: flex;
+    gap: 12px;
+    padding: 12px 14px;
+    margin-bottom: 8px;
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+    cursor: pointer;
+    transition: all 0.2s;
+    border-left: 4px solid transparent;
+    position: relative;
+  }
+  .stop-card:hover, .stop-card.active {
+    transform: translateX(4px);
+    box-shadow: 0 4px 16px rgba(45,106,79,0.18);
+    border-left-color: var(--jeju-orange);
+  }
+  .stop-num {
+    width: 30px; height: 30px;
+    background: var(--jeju-pale);
+    color: var(--jeju-green);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700;
+    font-size: 13px;
+    flex-shrink: 0;
+  }
+  .stop-card.active .stop-num {
+    background: var(--jeju-orange);
+    color: #fff;
+  }
+  .stop-info { flex: 1; min-width: 0; }
+  .stop-name {
+    font-weight: 700;
+    font-size: 14px;
+    color: #1a1a1a;
+    margin-bottom: 3px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .stop-desc {
+    font-size: 11px;
+    color: #888;
+    line-height: 1.4;
+  }
+  .stop-tag {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 10px;
+    white-space: nowrap;
+    align-self: flex-start;
+    margin-top: 2px;
+  }
+  .tag-nature { background: #d8f3dc; color: #2d6a4f; }
+  .tag-culture { background: #ffd6a5; color: #9d4e00; }
+  .tag-food { background: #ffafcc; color: #5c0025; }
+  .tag-activity { background: #caf0f8; color: #03045e; }
+
+  /* MAP */
+  #map {
+    flex: 1;
+    z-index: 1;
+  }
+
+  /* POPUP */
+  .leaflet-popup-content-wrapper {
+    border-radius: 12px !important;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.22) !important;
+    border: none !important;
+    padding: 0 !important;
+    overflow: hidden;
+  }
+  .leaflet-popup-content {
+    margin: 0 !important;
+    width: 200px !important;
+  }
+  .popup-inner {
+    padding: 14px 16px;
+  }
+  .popup-day {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: var(--jeju-green);
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  .popup-name {
+    font-family: 'Noto Serif KR', serif;
+    font-size: 16px;
+    font-weight: 700;
+    color: #1a1a1a;
+    margin-bottom: 6px;
+  }
+  .popup-desc {
+    font-size: 12px;
+    color: #666;
+    line-height: 1.5;
+  }
+  .popup-emoji {
+    background: var(--jeju-pale);
+    padding: 10px;
+    text-align: center;
+    font-size: 28px;
+  }
+
+  /* Route line animation */
+  .animated-path {
+    stroke-dasharray: 12 8;
+    animation: dashMove 0.8s linear infinite;
+  }
+  @keyframes dashMove {
+    to { stroke-dashoffset: -20; }
+  }
+
+  /* Legend */
+  .map-legend {
+    position: absolute;
+    bottom: 24px;
+    right: 12px;
+    z-index: 1000;
+    background: rgba(255,255,255,0.95);
+    padding: 12px 16px;
+    border-radius: 10px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+    font-size: 12px;
+    border-top: 3px solid var(--jeju-orange);
+  }
+  .legend-title {
+    font-weight: 700;
+    color: var(--jeju-green);
+    margin-bottom: 8px;
+    font-size: 11px;
+    letter-spacing: 0.5px;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 5px;
+  }
+  .legend-line {
+    width: 24px; height: 3px;
+    border-radius: 2px;
+  }
+
+  @media (max-width: 700px) {
+    .main { grid-template-columns: 1fr; grid-template-rows: 1fr 340px; }
+    header h1 { font-size: 22px; }
+    .stat-num { font-size: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-tag">✈ 수학여행 2025</div>
+  <h1>제주도<br><span>탐험 지도</span></h1>
+  <p class="header-sub">2박 3일 · 제주의 자연과 문화를 따라</p>
+</header>
+
+<div class="stats-row">
+  <div class="stat">
+    <div class="stat-num">2박 3일</div>
+    <div class="stat-label">일정</div>
+  </div>
+  <div class="stat">
+    <div class="stat-num">12</div>
+    <div class="stat-label">방문지</div>
+  </div>
+  <div class="stat">
+    <div class="stat-num">약 180km</div>
+    <div class="stat-label">이동거리</div>
+  </div>
+  <div class="stat">
+    <div class="stat-num">🍊🌊🌋</div>
+    <div class="stat-label">테마</div>
+  </div>
+</div>
+
+<div class="main">
+  <div class="sidebar" id="sidebar"></div>
+  <div style="position:relative; flex:1;">
+    <div id="map" style="width:100%;height:100%;"></div>
+    <div class="map-legend">
+      <div class="legend-title">🗺 경로 범례</div>
+      <div class="legend-item">
+        <div class="legend-line" style="background:#2d6a4f; border-top: 2px dashed #2d6a4f; height:0;width:24px;"></div>
+        <span>1일차</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-line" style="background:#e85d04; border-top: 2px dashed #e85d04; height:0;width:24px;"></div>
+        <span>2일차</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-line" style="background:#0077b6; border-top: 2px dashed #0077b6; height:0;width:24px;"></div>
+        <span>3일차</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const days = [
+  {
+    day: 1,
+    label: "1일차",
+    title: "도착 & 서부 탐방",
+    color: "#2d6a4f",
+    stops: [
+      { name: "제주국제공항", lat: 33.5113, lng: 126.4928, emoji: "✈️", tag: "activity", tagLabel: "이동", desc: "여행의 시작! 제주 도착" },
+      { name: "협재해수욕장", lat: 33.3941, lng: 126.2393, emoji: "🏖️", tag: "nature", tagLabel: "자연", desc: "에메랄드빛 바다와 한림공원 인근" },
+      { name: "한림공원", lat: 33.3944, lng: 126.2523, emoji: "🌴", tag: "nature", tagLabel: "자연", desc: "야자수 숲과 동굴, 아열대 식물원" },
+      { name: "오설록 티 뮤지엄", lat: 33.3057, lng: 126.2897, emoji: "🍵", tag: "culture", tagLabel: "문화", desc: "제주 녹차의 모든 것, 포토존" },
+    ]
+  },
+  {
+    day: 2,
+    label: "2일차",
+    title: "한라산 & 동부 문화",
+    color: "#e85d04",
+    stops: [
+      { name: "성산일출봉", lat: 33.4589, lng: 126.9425, emoji: "🌋", tag: "nature", tagLabel: "자연", desc: "유네스코 세계자연유산, 일출 명소" },
+      { name: "섭지코지", lat: 33.4274, lng: 126.9301, emoji: "🌊", tag: "nature", tagLabel: "자연", desc: "드라마 촬영지, 탁 트인 해안 절경" },
+      { name: "제주민속촌", lat: 33.3643, lng: 126.8594, emoji: "🏘️", tag: "culture", tagLabel: "문화", desc: "제주 전통 생활문화 체험" },
+      { name: "제주돌문화공원", lat: 33.4506, lng: 126.7793, emoji: "🪨", tag: "culture", tagLabel: "문화", desc: "돌하르방과 제주의 돌 문화 전시" },
+    ]
+  },
+  {
+    day: 3,
+    label: "3일차",
+    title: "남부 & 귀환",
+    color: "#0077b6",
+    stops: [
+      { name: "천지연폭포", lat: 33.2466, lng: 126.5617, emoji: "💧", tag: "nature", tagLabel: "자연", desc: "23m 높이의 웅장한 천연 폭포" },
+      { name: "중문해수욕장", lat: 33.2424, lng: 126.4113, emoji: "🏄", tag: "activity", tagLabel: "체험", desc: "파도타기, 수상스포츠의 메카" },
+      { name: "제주 흑돼지 거리", lat: 33.2497, lng: 126.5128, emoji: "🥩", tag: "food", tagLabel: "먹거리", desc: "제주 흑돼지 구이, 맛집 밀집" },
+      { name: "제주국제공항", lat: 33.5113, lng: 126.4928, emoji: "✈️", tag: "activity", tagLabel: "이동", desc: "여행의 마무리, 귀환" },
+    ]
+  }
+];
+
+// Build sidebar
+const sidebar = document.getElementById('sidebar');
+days.forEach(day => {
+  const section = document.createElement('div');
+  section.className = 'day-section';
+  section.innerHTML = `
+    <div class="day-header">
+      <span class="day-badge" style="background:${day.color}">${day.label}</span>
+      <span class="day-title">${day.title}</span>
+    </div>
+  `;
+  day.stops.forEach((stop, i) => {
+    const card = document.createElement('div');
+    card.className = 'stop-card';
+    card.id = `card-d${day.day}-s${i}`;
+    card.innerHTML = `
+      <div class="stop-num">${i+1}</div>
+      <div class="stop-info">
+        <div class="stop-name">${stop.emoji} ${stop.name}</div>
+        <div class="stop-desc">${stop.desc}</div>
+      </div>
+      <span class="stop-tag tag-${stop.tag}">${stop.tagLabel}</span>
+    `;
+    section.appendChild(card);
+  });
+  sidebar.appendChild(section);
+});
+
+// Init map
+const map = L.map('map', {
+  center: [33.38, 126.55],
+  zoom: 10,
+  zoomControl: true
+});
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '© OpenStreetMap contributors',
+  maxZoom: 18
+}).addTo(map);
+
+// Custom marker icon
+function makeIcon(emoji, color) {
+  return L.divIcon({
+    html: `<div style="
+      background:${color};
+      color:#fff;
+      width:36px;height:36px;
+      border-radius:50% 50% 50% 0;
+      transform:rotate(-45deg);
+      display:flex;align-items:center;justify-content:center;
+      box-shadow:0 3px 12px rgba(0,0,0,0.3);
+      border:2px solid #fff;
+      font-size:16px;
+    "><span style="transform:rotate(45deg);display:block;line-height:1">${emoji}</span></div>`,
+    className: '',
+    iconSize: [36, 36],
+    iconAnchor: [18, 36],
+    popupAnchor: [0, -38]
+  });
+}
+
+const markers = {};
+
+days.forEach(day => {
+  // Draw route
+  const latlngs = day.stops.map(s => [s.lat, s.lng]);
+  const polyline = L.polyline(latlngs, {
+    color: day.color,
+    weight: 3,
+    opacity: 0.85,
+    dashArray: '10, 8'
+  }).addTo(map);
+
+  // Animate dashes via class
+  polyline.getElement && setTimeout(() => {
+    const el = polyline.getElement();
+    if (el) {
+      el.style.animation = 'dashMove 0.9s linear infinite';
+      el.style.strokeDasharray = '10 8';
+    }
+  }, 500);
+
+  // Draw arrows along path
+  day.stops.forEach((stop, i) => {
+    const marker = L.marker([stop.lat, stop.lng], {
+      icon: makeIcon(stop.emoji, day.color)
+    }).addTo(map);
+
+    const popupContent = `
+      <div class="popup-emoji">${stop.emoji}</div>
+      <div class="popup-inner">
+        <div class="popup-day" style="color:${day.color}">${day.label} · ${i+1}번째 장소</div>
+        <div class="popup-name">${stop.name}</div>
+        <div class="popup-desc">${stop.desc}</div>
+      </div>
+    `;
+    marker.bindPopup(popupContent, { maxWidth: 220 });
+
+    const cardId = `card-d${day.day}-s${i}`;
+    markers[cardId] = marker;
+
+    marker.on('click', () => {
+      document.querySelectorAll('.stop-card').forEach(c => c.classList.remove('active'));
+      const card = document.getElementById(cardId);
+      if (card) {
+        card.classList.add('active');
+        card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    });
+
+    const card = document.getElementById(cardId);
+    if (card) {
+      card.addEventListener('click', () => {
+        document.querySelectorAll('.stop-card').forEach(c => c.classList.remove('active'));
+        card.classList.add('active');
+        map.setView([stop.lat, stop.lng], 13, { animate: true });
+        marker.openPopup();
+      });
+    }
+  });
+
+  // Draw direction arrows
+  for (let i = 0; i < day.stops.length - 1; i++) {
+    const s = day.stops[i];
+    const e = day.stops[i+1];
+    const midLat = (s.lat + e.lat) / 2;
+    const midLng = (s.lng + e.lng) / 2;
+    const angle = Math.atan2(e.lng - s.lng, e.lat - s.lat) * 180 / Math.PI;
+    L.marker([midLat, midLng], {
+      icon: L.divIcon({
+        html: `<div style="color:${day.color};font-size:18px;font-weight:bold;transform:rotate(${angle}deg);opacity:0.7;">➤</div>`,
+        className: '',
+        iconSize: [20,20],
+        iconAnchor: [10,10]
+      }),
+      interactive: false
+    }).addTo(map);
+  }
+});
+
+// Add CSS animation to map
+const style = document.createElement('style');
+style.textContent = `
+  @keyframes dashMove {
+    to { stroke-dashoffset: -18; }
+  }
+`;
+document.head.appendChild(style);
+</script>
+</body>
+</html>
