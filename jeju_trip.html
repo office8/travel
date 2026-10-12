@@ -1063,7 +1063,22 @@ function updateVisitorMarkers(visitors) {
   // 추가/업데이트
   visitors.forEach(function(v, i) {
     if (!v.lat || !v.lng) return;
-    if (v.id === myId) return; // 내 마커는 별도
+    // 내 마커: 주황색 원 + "나" 표시
+    if (v.id === myId) {
+      var myIcon = L.divIcon({
+        html: '<div style="background:#ff6b00;color:#fff;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:14px;box-shadow:0 2px 12px rgba(255,107,0,0.6);border:3px solid #fff;">나</div>',
+        className: '', iconSize: [36,36], iconAnchor: [18,18], popupAnchor: [0,-20]
+      });
+      if (visitorMarkers['__me__']) {
+        visitorMarkers['__me__'].setLatLng([v.lat, v.lng]);
+        visitorMarkers['__me__'].setIcon(myIcon);
+      } else {
+        visitorMarkers['__me__'] = L.marker([v.lat, v.lng], { icon: myIcon, zIndexOffset: 1000 })
+          .bindPopup('<b>나 (' + v.nickname + ')</b><br><small>내 현재 위치</small>')
+          .addTo(map);
+      }
+      return;
+    }
     var color = DAY_COLORS[i % DAY_COLORS.length];
     if (visitorMarkers[v.id]) {
       visitorMarkers[v.id].setLatLng([v.lat, v.lng]);
@@ -1090,7 +1105,7 @@ function subscribeRealtime() {
   setInterval(loadAllVisitors, 15000);
 }
 
-var _lastSave = 0;
+var _lastSave = -99999;
 function updateMyLocation(lat, lng) {
   if (!myId) return;
   var now = Date.now();
