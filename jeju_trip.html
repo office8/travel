@@ -1167,9 +1167,16 @@ function startTracking() {
 
   // GPS 추적 시작
   if (navigator.geolocation) {
+    var _movedToMyLocation = false;
     watchId = navigator.geolocation.watchPosition(
       function(pos) {
-        updateMyLocation(pos.coords.latitude, pos.coords.longitude);
+        var lat = pos.coords.latitude, lng = pos.coords.longitude;
+        updateMyLocation(lat, lng);
+        // 첫 GPS 수신 시 내 위치로 지도 이동
+        if (!_movedToMyLocation) {
+          _movedToMyLocation = true;
+          map.setView([lat, lng], 14, {animate: true, duration: 1});
+        }
       },
       function(err) { console.log("GPS 오류:", err.message); },
       { enableHighAccuracy: true, maximumAge: 10000, timeout: 15000 }
